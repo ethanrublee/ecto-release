@@ -1,0 +1,72 @@
+# ==============================================================================
+#  The ecto CMake configuration file
+#
+#             ** File generated automatically, do not modify **
+#
+#  Usage from an external project:
+#    In your CMakeLists.txt, add these lines:
+#
+#    find_package(ecto REQUIRED)
+#    ectomodule(mymodule src/module.cpp)
+#    ecto_link(mymodule ${MY_LIB_DEPS})
+#    install_ecto_module(mymodule)
+#
+#    This file will define the following variables:
+#      - ecto_LIBRARIES                 : The list of libraries to link against.
+#      - ecto_INCLUDE_DIRS              : The ecto include directories
+#    These macros:
+#      set_ecto_install_package_name(package_name) #default is "" you may specify other
+#	   ectomodule(module_name ${srcs}) #This creates a single ecto module 
+#                                      #shared library loadable from python,
+#                                      #will add includes, links to bare necessities and mangles the target name with ${name}_ectomodule
+#	   link_ecto(module_name ${libs})  #Link to additional libraries
+#	   install_ecto_module(module_name) #install your target a python system path.
+#
+#    Generated files:
+#      In your build directory, a python_path.sh will be generated which you may source to setup your PYTHONPATH to
+#      properly find ecto and your own ecto modules. The variable: ecto_user_PYTHONPATH is looked at when generating
+#      this file. ecto_user_PYTHONPATH defaults to the LIBRARY_OUTPUT_DIRECTORY  This variable will be prepended to your
+#      python path in the form PYTHONPATH=${ecto_user_PYTHONPATH}:<path to ecto>:PYTHONPATH
+# ==============================================================================
+get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(${SELF_DIR}/ectoMacros.cmake)
+include(${SELF_DIR}/rosbuild_lite.cmake)
+include(${SELF_DIR}/doc.cmake)
+include(${SELF_DIR}/git.cmake)
+set(ecto_INCLUDE_DIRS @ecto_INCLUDE_DIRS@)
+set(ECTO_CONFIG_PATH ${SELF_DIR})
+set(ecto_PYTHONPATH @ecto_PYTHONPATH@)
+set(ecto_PYTHONLIB @ecto_PYTHONLIB@)
+
+# ============== dependencies ==================================================
+find_package(Threads)
+find_package(Boost COMPONENTS
+  python
+  thread
+  system
+  REQUIRED
+  )
+find_package(PythonLibs REQUIRED)
+
+
+#detect the python version and install directories
+find_package(PythonInterp REQUIRED)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} --version
+              ERROR_VARIABLE PYTHON_VERSION_FULL
+              OUTPUT_STRIP_TRAILING_WHITESPACE)
+              
+string(REGEX MATCH "[0-9].[0-9]" PYTHON_VERSION_MAJOR_MINOR "${PYTHON_VERSION_FULL}")
+
+if(UNIX)
+    if(APPLE)
+        set(PYTHON_PACKAGES_PATH lib/python${PYTHON_VERSION_MAJOR_MINOR}/site-packages CACHE PATH "Where to install the python packages.")
+    else() #debian based assumed, install to the dist-packages.
+        set(PYTHON_PACKAGES_PATH lib/python${PYTHON_VERSION_MAJOR_MINOR}/dist-packages CACHE PATH "Where to install the python packages.")
+    endif()
+elseif(WIN32)
+    get_filename_component(PYTHON_PATH "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Python\\PythonCore\\${PYTHON_VERSION_MAJOR_MINOR}\\InstallPath]" ABSOLUTE CACHE)
+    set(PYTHON_PACKAGES_PATH "${PYTHON_PATH}/Lib/site-packages" CACHE PATH "Where to install the python packages.")
+endif()
+
+set(ecto_module_PYTHON_INSTALL ${PYTHON_PACKAGES_PATH})
+
